@@ -109,7 +109,6 @@ async fn render_page(mut relative_path: String, state: AppState) -> impl IntoRes
             dir_entries.push(dir_entry);
         }
 
-        // dir_entries.sort_by_key(|a| a.file_name());
         dir_entries.sort_by(|a, b| match (a.path().is_dir(), b.path().is_dir()) {
             (true, false) => Ordering::Less,
             (false, true) => Ordering::Greater,
@@ -154,7 +153,11 @@ async fn render_page(mut relative_path: String, state: AppState) -> impl IntoRes
 </body>
 
 </html>"#,
-                path.file_name().unwrap().to_str().unwrap()
+                if relative_path.trim_matches('/').is_empty() {
+                    "/"
+                } else {
+                    path.file_name().unwrap().to_str().unwrap()
+                }
             )),
         )
             .into_response()
