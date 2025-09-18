@@ -42,6 +42,12 @@ async fn render_page(mut relative_path: String, state: AppState) -> impl IntoRes
     if !path.exists() {
         (StatusCode::NOT_FOUND, "file not found".to_string()).into_response()
     } else if path.is_file() {
+        let file_name = path.file_name().unwrap().to_str().unwrap().to_owned();
+
+        if is_file_name_ignored(&file_name, &state.exclude_files) {
+            return StatusCode::FORBIDDEN.into_response();
+        }
+
         let is_typst_file = path
             .file_name()
             .unwrap()
@@ -113,7 +119,7 @@ async fn render_page(mut relative_path: String, state: AppState) -> impl IntoRes
         for dir_entry in dir_entries {
             let file_name = dir_entry.file_name().to_str().unwrap().to_string();
 
-            if state.exclude_files.contains(&file_name) {
+            if is_file_name_ignored(&file_name, &state.exclude_files) {
                 continue;
             }
 
@@ -153,4 +159,9 @@ async fn render_page(mut relative_path: String, state: AppState) -> impl IntoRes
         )
             .into_response()
     }
+}
+
+/// Checks if the file name is included in `excluded_files` or starts with a dot
+fn is_file_name_ignored(file_name: &String, excluded_files: &[String]) -> bool {
+    excluded_files.contains(file_name) || file_name.starts_with('.')
 }

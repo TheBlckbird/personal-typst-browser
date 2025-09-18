@@ -3,7 +3,7 @@ use std::{env, error::Error, process::exit};
 use axum::{Router, http::header, response::IntoResponse, routing::get};
 use dotenvy::dotenv;
 use log::{error, info};
-use tokio::{fs, net::TcpListener};
+use tokio::net::TcpListener;
 
 use crate::typst::{get_path, root_page};
 
