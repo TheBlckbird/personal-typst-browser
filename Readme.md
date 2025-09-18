@@ -35,6 +35,7 @@ ROOT_DIR=/files
 
 # Comma seperated values of ignored files
 EXCLUDE_FILES=.DS_Store,.git
+
 # Prefix of the URL this is ultimately served on
 URL_PREFIX=http://example.com
 
