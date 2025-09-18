@@ -1,7 +1,8 @@
-use std::{env, process::exit};
+use std::{env, error::Error, process::exit};
 
 use axum::{Router, http::header, response::IntoResponse, routing::get};
 use dotenvy::dotenv;
+use log::{error, info};
 use tokio::{fs, net::TcpListener};
 
 use crate::typst::{get_path, root_page};
@@ -27,28 +28,30 @@ impl AppState {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn Error>> {
+    env_logger::init();
+
     let mut root_dir = None;
-    let mut exclude_files_raw = None;
     let mut url_prefix = None;
 
-    dotenv().unwrap();
+    dotenv()?;
 
     for (key, value) in env::vars() {
         match key.to_lowercase().as_str() {
             "root_dir" => root_dir = Some(value),
             "url_prefix" => url_prefix = Some(value),
-            "exclude_files" => exclude_files_raw = Some(value),
             _ => continue,
+        }
+
+        if root_dir.is_some() && url_prefix.is_some() {
+            break;
         }
     }
 
     let mut exclude_files = Vec::new();
 
-    if let Some(value) = exclude_files_raw {
-        value
-            .split(',')
-            .for_each(|item| exclude_files.push(item.trim().to_owned()))
+    for file in env_or("exclude_files", "").split(',') {
+        exclude_files.push(file.trim().to_owned())
     }
 
     let state = if let Some(root_dir) = root_dir
@@ -56,7 +59,7 @@ async fn main() {
     {
         AppState::new(root_dir, exclude_files, url_prefix)
     } else {
-        eprintln!("Missing either URL_PREFIX or ROOT_DIR in .env file!");
+        error!("Missing either URL_PREFIX or ROOT_DIR in .env file!");
         exit(1);
     };
 
@@ -66,13 +69,28 @@ async fn main() {
         .route("/{*path}", get(get_path))
         .with_state(state);
 
-    let listener = TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    let host = env_or("host", "0.0.0.0:3000");
+
+    info!("Starting server on {host}");
+
+    let listener = TcpListener::bind(host).await?;
+    axum::serve(listener, app).await?;
+
+    Ok(())
+}
+
+/// Tries to find an environment variable with the given name and returns its content as a string
+/// or the provided default if it can't be found.
+fn env_or(searched_name: &str, default: &str) -> String {
+    env::vars()
+        .find(|(var_name, _)| var_name.to_lowercase() == searched_name)
+        .map(|(_, content)| content)
+        .unwrap_or(default.to_string())
 }
 
 async fn main_css() -> impl IntoResponse {
     (
         [(header::CONTENT_TYPE, "text/css")],
-        fs::read_to_string("static/main.css").await.unwrap(),
+        include_str!("./main.css"),
     )
 }
