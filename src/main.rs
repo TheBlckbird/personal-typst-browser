@@ -3,7 +3,7 @@ use std::{env, error::Error, process::exit};
 use axum::{Router, http::header, response::IntoResponse, routing::get};
 use dotenvy::dotenv;
 use log::{error, info};
-use tokio::net::TcpListener;
+use tokio::{fs, net::TcpListener};
 
 use crate::typst::{get_path, root_page};
 
@@ -63,6 +63,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         exit(1);
     };
 
+    let out_dir_name = env_or("OUT_DIR", "out");
+    create_out_dir(out_dir_name).await;
+
     let app = Router::new()
         .route("/", get(root_page))
         .route("/main.css", get(main_css))
@@ -93,4 +96,9 @@ async fn main_css() -> impl IntoResponse {
         [(header::CONTENT_TYPE, "text/css")],
         include_str!("./main.css"),
     )
+}
+
+/// Creates the output directory if it doesn't already exist
+async fn create_out_dir(name: String) {
+    fs::create_dir_all(name).await.unwrap();
 }
