@@ -2,6 +2,15 @@
 
 Browse your personal typst files. Written in Rust with axum.
 
+You can preview or download every file you want. Typst files are compiled on the fly and sent over as a pdf.
+
+Example of the root page:
+
+<img width="749" height="652" alt="image" src="https://github.com/user-attachments/assets/b3f78b0c-8b35-4499-bebf-3ad393a2b21b" />
+
+Note that nothing is cached, meaning it could take up to a few seconds to compile and download a typst file.
+But most of the times the request will complete in under a second.
+
 ## Deploy
 
 The easiest way to deploy this is with Docker Compose.
