@@ -8,3 +8,4 @@ axum = "0.8"
 dotenvy = "0.15.7"
 tokio = { version = "1.47", features = ["full"] }
 tokio-util = { version = "0.7", features = ["io"] }
+mime_guess = "2.0"

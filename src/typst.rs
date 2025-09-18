@@ -1,11 +1,12 @@
-use std::path;
+use std::{cmp::Ordering, path};
 
 use axum::{
     body::Body,
     extract::{Path, State},
-    http::{header, StatusCode},
+    http::{StatusCode, header},
     response::{Html, IntoResponse},
 };
+use mime_guess::mime;
 use tokio::{
     fs::{self, File},
     process::Command,
@@ -18,7 +19,10 @@ pub async fn root_page(State(state): State<AppState>) -> impl IntoResponse {
     render_page("/".to_string(), state).await
 }
 
-pub async fn get_path(State(state): State<AppState>, Path(path): Path<String>) -> impl IntoResponse {
+pub async fn get_path(
+    State(state): State<AppState>,
+    Path(path): Path<String>,
+) -> impl IntoResponse {
     render_page(path, state).await
 }
 
@@ -38,26 +42,46 @@ async fn render_page(mut relative_path: String, state: AppState) -> impl IntoRes
     if !path.exists() {
         (StatusCode::NOT_FOUND, "file not found".to_string()).into_response()
     } else if path.is_file() {
-        Command::new("typst")
-            .arg("compile")
-            .arg(path)
-            .args(["--root", &root_dir])
-            .arg("./out/generated.pdf")
-            .output()
-            .await
-            .unwrap();
+        let is_typst_file = path
+            .file_name()
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .ends_with(".typ");
 
-        let file = File::open("out/generated.pdf").await.unwrap();
+        let file = if is_typst_file {
+            Command::new("typst")
+                .arg("compile")
+                .arg(path)
+                .args(["--root", &root_dir])
+                .arg("./out/generated.pdf")
+                .output()
+                .await
+                .unwrap();
+
+            File::open("out/generated.pdf").await.unwrap()
+        } else {
+            File::open(path).await.unwrap()
+        };
+
         let stream = ReaderStream::new(file);
         let body = Body::from_stream(stream);
 
-        let content_disposition = format!(
-            "inline; filename=\"{}\"",
-            path.file_name().unwrap().to_str().unwrap()
-        );
+        let file_name = path.file_name().unwrap().to_str().unwrap();
+        let content_disposition = format!("inline; filename=\"{file_name}\"",);
 
         let headers = [
-            (header::CONTENT_TYPE, "application/pdf"),
+            (
+                header::CONTENT_TYPE,
+                if is_typst_file {
+                    "application/pdf"
+                } else {
+                    &mime_guess::from_path(path)
+                        .first()
+                        .unwrap_or(mime::TEXT_PLAIN)
+                        .to_string()
+                },
+            ),
             (header::CONTENT_DISPOSITION, &content_disposition),
         ];
 
@@ -73,21 +97,27 @@ async fn render_page(mut relative_path: String, state: AppState) -> impl IntoRes
             None => String::new(),
         };
 
+        let mut dir_entries = Vec::new();
+
         while let Ok(Some(dir_entry)) = filesystem_objects.next_entry().await {
+            dir_entries.push(dir_entry);
+        }
+
+        // dir_entries.sort_by_key(|a| a.file_name());
+        dir_entries.sort_by(|a, b| match (a.path().is_dir(), b.path().is_dir()) {
+            (true, false) => Ordering::Less,
+            (false, true) => Ordering::Greater,
+            _ => a.file_name().cmp(&b.file_name()),
+        });
+
+        for dir_entry in dir_entries {
             let file_name = dir_entry.file_name().to_str().unwrap().to_string();
 
             if state.exclude_files.contains(&file_name) {
                 continue;
             }
 
-            let is_file = dir_entry.path().is_file();
-
-            if is_file && !file_name.ends_with(".typ") {
-                // TODO: For now, later this should result in a download
-                continue;
-            }
-
-            let class = if is_file {
+            let class = if dir_entry.path().is_file() {
                 "file"
             } else {
                 "dir"
@@ -103,7 +133,7 @@ async fn render_page(mut relative_path: String, state: AppState) -> impl IntoRes
 <!DOCTYPE html>
 <html>
 <head>
-    <title>ok</title>
+    <title>{}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="utf-8">
     <link rel="stylesheet" href="/main.css">
@@ -118,6 +148,7 @@ async fn render_page(mut relative_path: String, state: AppState) -> impl IntoRes
 </body>
 
 </html>"#,
+                path.file_name().unwrap().to_str().unwrap()
             )),
         )
             .into_response()
