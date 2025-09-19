@@ -6,7 +6,6 @@ use axum::{
     http::{StatusCode, header},
     response::{Html, IntoResponse},
 };
-use log::debug;
 use mime_guess::mime;
 use tokio::{
     fs::{self, File},
@@ -168,12 +167,9 @@ fn is_path_ignored(file_path: &path::Path, excluded_files: &[String]) -> bool {
 
     for ancestor in file_path.ancestors() {
         let Some(ancestor_name) = ancestor.file_name() else {
-            debug!("whoops");
             continue;
         };
         let ancestor_name = ancestor_name.to_str().unwrap().to_string();
-
-        debug!("{ancestor_name}");
 
         if is_excluded(&ancestor_name) {
             return true;
