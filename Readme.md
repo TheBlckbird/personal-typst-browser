@@ -13,22 +13,12 @@ But most of the times the request will complete in under a second.
 
 ## Deploy
 
-The easiest way to deploy this is with Docker Compose.
-
-You first have to build the docker image. To do that, clone this repository and change into the directory, then run:
-
-```
-docker build --tag personal_typst_browser .
-```
-
-This builds an image with the name `personal_typst_browser`. No dependencies other than Docker are needed.
-
-The best way to serve this image is with Docker Compose:
+The easiest way to deploy this is with Docker Compose:
 
 ```yml
 services:
   typst-browser:
-    image: personal_typst_browser
+    image: ghcr.io/theblckbird/personal-typst-browser
     ports:
       - 80:3000 # Choose whatever port you want
     volumes:
