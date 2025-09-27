@@ -1,7 +1,5 @@
 use surrealdb::{
-    Surreal,
-    engine::remote::ws::{Client, Ws},
-    opt::auth::{Database, Namespace, Root},
+    engine::remote::ws::{Client, Wss}, opt::auth::{Database, Namespace, Root}, Surreal
 };
 
 /// Creates and returns a SurrealDB connection
@@ -12,7 +10,7 @@ pub async fn setup_surrealdb(
     namespace: String,
     database_name: String,
 ) -> Result<Surreal<Client>, surrealdb::Error> {
-    let db = Surreal::new::<Ws>(address).await?;
+    let db = Surreal::new::<Wss>(address).await?;
 
     let connect_database_result = db
         .signin(Database {
