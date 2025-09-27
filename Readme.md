@@ -19,11 +19,57 @@ The easiest way to deploy this is with Docker Compose:
 services:
   typst-browser:
     image: ghcr.io/theblckbird/personal-typst-browser
+    restart: always
     ports:
-      - 80:3000 # Choose whatever port you want
+      - 80:3000 # Choose whatever port you want to expose this on
     volumes:
       - /local/path/to/files:/files # Example mount for the files that are to be served.
       - ./.env:/app/.env
+
+  db:
+    image: surrealdb/surrealdb
+    restart: always
+    env_file:
+      - .env
+    entrypoint:
+        - /surreal
+        - start
+        - --user
+        - $DB_USER
+        - --pass
+        - $DB_PASS
+```
+
+```yml
+services:
+  typst-browser:
+    image: personal-typst-browser
+    networks:
+      - backend
+    restart: always
+    ports:
+      - 3000:3000 # Choose whatever port you want to
+    volumes:
+      - /Users/louisweigel/Nextcloud/school-typst/:/files # Example mount for the files that are to be served.
+      - ./.env:/app/.env
+
+  db:
+    image: surrealdb/surrealdb
+    restart: always
+    networks:
+      - backend
+    env_file:
+      - .env
+    entrypoint:
+        - /surreal
+        - start
+        - --user
+        - $DB_USER
+        - --pass
+        - $DB_PASS
+
+networks:
+  app:
 ```
 
 Example `.env` file:

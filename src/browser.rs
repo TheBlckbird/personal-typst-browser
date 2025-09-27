@@ -135,13 +135,17 @@ async fn render_page(mut relative_path_raw: String, state: AppState) -> impl Int
 <!DOCTYPE html>
 <html>
 <head>
-    <title>{}</title>
+    <title>{} — Personal Typst Browser</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="utf-8">
-    <link rel="stylesheet" href="/main.css">
+    <link rel="stylesheet" href="/style/browser.css">
 </head>
 
 <body>
+<form method="post" action="/logout">
+    <button type="submit" class="form-field form-field--button">Logout</button>
+</form>
+
     <h1 class="title">{relative_path_raw}</h1>
 
     <ul class="dir-list">
