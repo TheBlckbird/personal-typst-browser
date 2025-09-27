@@ -11,3 +11,8 @@ tokio-util = { version = "0.7", features = ["io"] }
 mime_guess = "2.0"
 log = "0.4"
 env_logger = "0.11"
+tower-sessions = "0.14"
+time = "0.3"
+serde = { version = "1.0.226", features = ["derive"] }
+tower-sessions-surrealdb-store = "0.7.0"
+surrealdb = "2.3.10"
